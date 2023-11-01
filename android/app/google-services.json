@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "515733548489",
+    "project_id": "education-app-a7dd5",
+    "storage_bucket": "education-app-a7dd5.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:515733548489:android:a2c900ae20aa49f1980c18",
+        "android_client_info": {
+          "package_name": "com.alamsyah.smatrackx"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDzJo26-Hk-YPV6A0jQZp2VemTaKM4SBCQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
