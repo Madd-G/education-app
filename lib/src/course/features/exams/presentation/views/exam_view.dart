@@ -10,7 +10,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 
 class ExamView extends StatefulWidget {
-  const ExamView({super.key});
+  const ExamView({Key? key}) : super(key: key);
 
   static const routeName = '/exam';
 
@@ -22,6 +22,7 @@ class _ExamViewState extends State<ExamView> {
   bool showingLoader = false;
 
   late ExamController examController;
+  bool _disposed = false;
 
   Future<void> submitExam() async {
     if (!examController.isTimeUp) {
@@ -31,38 +32,50 @@ class _ExamViewState extends State<ExamView> {
       final timeLeftText = isHoursLeft
           ? 'hours'
           : isMinutesLeft
-              ? 'minutes'
-              : 'seconds';
+          ? 'minutes'
+          : 'seconds';
 
+      // Use await here to wait for the dialog result
       final endExam = await showDialog<bool>(
         context: context,
         builder: (context) {
-          return AlertDialog.adaptive(
-            title: const Text('Submit Exam?'),
-            content: Text(
-              'You have ${examController.remainingTime} $timeLeftText left.\n'
-              'Are you sure you want to submit?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context, false);
-                },
-                child: const Text('Cancel'),
+          return WillPopScope(
+            onWillPop: () async {
+              return false; // Prevent user from popping the dialog
+            },
+            child: AlertDialog.adaptive(
+              title: const Text('Submit Exam?'),
+              content: Text(
+                'You have ${examController.remainingTime} $timeLeftText left.\n'
+                    'Are you sure you want to submit?',
               ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context, true);
-                },
-                child: const Text(
-                  'Submit',
-                  style: TextStyle(color: Colours.redColour),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context, false);
+                  },
+                  child: const Text('Cancel'),
                 ),
-              ),
-            ],
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context, true);
+                  },
+                  child: const Text(
+                    'Submit',
+                    style: TextStyle(color: Colours.redColour),
+                  ),
+                ),
+              ],
+            ),
           );
         },
       );
+
+      if (_disposed) {
+        // If disposed during the dialog, don't proceed
+        return;
+      }
+
       if (endExam ?? false) {
         return collectAndSend();
       } else {
@@ -73,6 +86,7 @@ class _ExamViewState extends State<ExamView> {
     collectAndSend();
   }
 
+
   void collectAndSend() {
     final exam = examController.userExam;
     context.read<ExamCubit>().submitExam(exam);
@@ -82,21 +96,31 @@ class _ExamViewState extends State<ExamView> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     examController = context.read<ExamController>();
+    // Add the listener here instead of in initState
+    examController.addListener(_onExamControllerChange);
   }
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPersistentFrameCallback((_) {
-      examController.addListener(() {
-        if (examController.isTimeUp) submitExam();
-      });
+    // Using addPostFrameCallback instead of addPersistentFrameCallback
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_disposed) {
+        examController.addListener(_onExamControllerChange);
+      }
     });
+  }
+
+  void _onExamControllerChange() {
+    if (examController.isTimeUp) submitExam();
   }
 
   @override
   void dispose() {
-    examController.dispose();
+    // Set the _disposed flag to true to avoid adding listeners after disposal
+    _disposed = true;
+    examController..removeListener(_onExamControllerChange)
+    ..dispose();
     super.dispose();
   }
 
